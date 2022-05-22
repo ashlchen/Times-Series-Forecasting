@@ -1,5 +1,5 @@
 ---
-title: "Amtrak Ridership Time Series Analysis"
+title: "Amtrak Ridership Time Series Forecasting"
 output: html_document
 author: "Ashley Chen"
 ---
@@ -17,5 +17,55 @@ ridership = ts(Amtrak$Ridership, start = c(1991, 1), end =c(2004,3), freq = 12)
 ## plot the series
 ```{r}
 library(ggplot2)
-plot(ridership, xlab= "Time", ylab = "Ridership", ylim = c(1300,2300))
+plot(ridership, xlab= "Time", ylab = "Ridership in thousands", ylim = c(1300,2300))
+```
+
+## short time series
+```{r}
+ridership_3yrs = window(ridership, start = c(1997,1) , end = c(1999,12))
+
+# fit a linear regression model to the time series
+ridership_lm = tslm(ridership ~ trend + I(trend^2))
+
+# shorter and longer time series
+par(mfrow = c(2, 1))
+plot(ridership_3yrs, xlab ="time", ylab = "ridership (in 000s)",
+     ylim = c(1300, 2300))
+plot(ridership, xlab ="time", ylab = "ridership (in 000s)",
+     ylim = c(1300, 2300))
+
+# overlay the fitted values of the linear model
+lines(ridership_lm$fitted, lwd=2)
+
+
+```
+
+## Benchmark: prediction using naive and seasonal naive forecasts
+```{r}
+nValid = 36
+nTrain = length(ridership) - 36
+
+# partition
+train = window(ridership, start = c(1991, 1), end = c(1991, nTrain))
+validation = window(ridership, start = c(1991, nTrain + 1), end = c(1991, nTrain + nValid))
+
+# generate the naive and seasonal naive forecasts
+naive_pred = naive(train, h= nValid) # naive(h=..) h means number of periods for forecasting
+snaive_pred = snaive(train, h = nValid)
+
+# plot forecasts and actuals in the training and validation sets
+plot(train, ylim = c(1300, 2600), ylab = "ridership", xlab = "time", bty = "l",
+     xaxt = "n", xlim = c(1991, 2006.25), main ="")
+axis(1, at = seq(1991, 2006, 1), labels = format(seq(1991, 2006, 1)))
+lines(naive_pred$mean, lwd = 2, col ="blue", lty = 1)
+lines(snaive_pred$mean, lwd = 2, col ="blue", lty = 1)
+lines(validation, col = "grey20", lty=3)
+lines(c(2004.25 - 3, 2004.25 -3), c(0,3500))
+lines(c(2004.25, 2004.25), c(0,3500))
+text(1996.25, 2500, "Training")
+text(2002.75, 2500, "Validation")
+text(2005.25, 2500, "Future")
+
+
+
 ```
